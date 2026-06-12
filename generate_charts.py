@@ -12,6 +12,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 
+THAI_FONT = r"C:\Windows\Fonts\tahoma.ttf"
+
 JSON_CHAT_LOG = "json_dataset/chat_log.json"
 JSON_CHAT_ANALYTICS = "json_dataset/chat_analytics.json"
 OUTPUT_DIR = "images"
@@ -106,6 +108,7 @@ wc = WordCloud(
     max_words=100,
     colormap='viridis',
     collocations=False,
+    font_path=THAI_FONT,
 ).generate(text if text.strip() else "no data")
 wc_img = wc.to_image()
 wc_img.save(os.path.join(OUTPUT_DIR, "wordcloud.png"))

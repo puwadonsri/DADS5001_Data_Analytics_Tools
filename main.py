@@ -17,6 +17,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 
+THAI_FONT = r"C:\Windows\Fonts\tahoma.ttf"
+
 MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "youtube"
 CHAT_COLLECTION = "chat_log"
@@ -161,6 +163,7 @@ def generate_wordcloud(text_series):
         max_words=100,
         colormap='viridis',
         collocations=False,
+        font_path=THAI_FONT,
     ).generate(text)
     img_buf = io.BytesIO()
     wc.to_image().save(img_buf, format='PNG')
