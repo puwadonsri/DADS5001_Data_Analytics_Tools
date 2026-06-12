@@ -64,6 +64,64 @@ YouTube Live Stream
 
 ---
 
+## Dashboard Preview / ตัวอย่างกราฟ
+
+> Charts generated from actual chat data (Jan 9–13, 2023) — 5 live streams, ~9,400 messages.
+
+### 1. Top 10 Stocks / หุ้น 10 อันดับแรก
+
+![Top 10 Stocks](images/top10_stocks.png)
+
+Bar chart showing the 10 most frequently mentioned SET stocks across all live streams.  
+กราฟแท่งแสดงหุ้น SET 10 อันดับที่ถูกพูดถึงมากที่สุดใน Live Chat
+
+---
+
+### 2. All Stocks / หุ้นทั้งหมด
+
+![All Stocks](images/all_stocks.png)
+
+Complete ranked list of every SET stock mentioned during the live streams.  
+อันดับหุ้น SET ทั้งหมดที่ถูกพูดถึงใน Live Chat เรียงตามจำนวนครั้ง
+
+---
+
+### 3. Viewers by Date / ผู้ชมตามวัน
+
+![Viewers by Date](images/viewers_by_date.png)
+
+Number of unique viewers per live stream day.  
+จำนวนผู้ชมที่ไม่ซ้ำกันในแต่ละวันที่มี Live
+
+---
+
+### 4. Top Viewers / ผู้ชมที่แอคทีฟที่สุด
+
+![Top Viewers](images/top_viewers.png)
+
+Top 20 most active users ranked by total chat messages sent.  
+ผู้ชม 20 อันดับที่ส่งข้อความใน Live Chat มากที่สุด
+
+---
+
+### 5. Word Cloud / คำที่พบบ่อย
+
+![Word Cloud](images/wordcloud.png)
+
+Visual representation of the most frequent words appearing in chat messages.  
+ภาพแสดงคำที่ถูกพูดถึงบ่อยที่สุดใน Live Chat (Word Cloud)
+
+---
+
+### 6. Mentions Over Time / แนวโน้มการพูดถึง
+
+![Mentions Over Time](images/mentions_over_time.png)
+
+Multi-series line chart tracking how often each of the top 10 stocks was mentioned per date.  
+กราฟเส้นแสดงแนวโน้มการพูดถึงหุ้น Top 10 ในแต่ละวัน
+
+---
+
 ## Installation / การติดตั้ง
 
 ```bash
@@ -142,10 +200,18 @@ Open http://localhost:1111 in your browser.
 ├── main.py                    # Dash web dashboard (6 pages)
 ├── YoutubeLive.py             # YouTube live chat scraper
 ├── YoutubeAnalytics.py        # Stock mention analyzer
+├── generate_charts.py         # Script to generate dashboard preview images
 ├── requirements.txt           # Python dependencies
 ├── .gitignore
 ├── README.md
 ├── PresentBY.txt
+├── images/                    # Dashboard preview images
+│   ├── top10_stocks.png
+│   ├── all_stocks.png
+│   ├── viewers_by_date.png
+│   ├── top_viewers.png
+│   ├── wordcloud.png
+│   └── mentions_over_time.png
 ├── json_dataset/
 │   ├── chat_log.json          # Raw chat messages (JSON fallback)
 │   ├── chat_analytics.json    # Pre-computed stock mentions (JSON fallback)
@@ -163,16 +229,7 @@ Open http://localhost:1111 in your browser.
 - **✅ Error handling** — Graceful failures throughout
 - **✅ Bilingual documentation** — Thai + English
 
----
 
-## Presenters / ผู้จัดทำ
-
-| Name | Student ID |
-|------|-----------|
-| ภูวดล ศรีธรรม (Phuwadon Sritham) | 6420422026 |
-| ขนิษฐา ปะอันทัง (Khanittha Pa-anthang) | 6420422019 |
-
-**Course:** DADS5001 Data Analytics Tools
 
 ---
 
