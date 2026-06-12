@@ -1,227 +1,197 @@
-#import library
-import pymongo
-import matplotlib.pyplot as plt
-import seaborn as sns
+import json
+import os
+import re
+import base64
+import io
+
 import pandas as pd
-import dash
-from dash import Input, Output, dcc, html, dash_table, Dash 
-import plotly.graph_objs as go
+import pymongo
+from pymongo.errors import ConnectionFailure
 import plotly.express as px
+import plotly.graph_objs as go
+import dash
+from dash import Input, Output, dcc, html, dash_table, Dash
 import dash_bootstrap_components as dbc
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
 
-#import css
-sns.set_style("dark")
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
-app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
-
-# Connect to MongoDB
-client = pymongo.MongoClient("mongodb://localhost:27017")
-db = client.youtube
-collection = db.chat_analytics
-collection_2 = db.chat_log
-
-# Get data from MongoDB
-data = list(collection.find().sort("setAmount", -1).limit(10))
-name=[]
-amount=[]
-for x in data:
-    tmp = list(x.values())
-    name.append(tmp[1])
-    amount.append(tmp[2])
-    lst1 = name
-    lst2 = amount
-    dict = {'Name': lst1, 'Total': lst2} 
-    df = pd.DataFrame(dict) 
-
-l1 = lst1
-l2 = lst2
-df2 = df
-
-# Get data from MongoDB
-data_p2 = list(collection.find())
-name_p2=[]
-amount_p2=[]
-for x_p2 in data_p2:
-    tmp_p2 = list(x_p2.values())
-    name_p2.append(tmp_p2[1])
-    amount_p2.append(tmp_p2[2])
-    lst1_p2 = name_p2
-    lst2_p2 = amount_p2
-    dict_p2 = {'Name': lst1_p2, 'Total': lst2_p2} 
-    df_p2 = pd.DataFrame(dict_p2) 
-
-l1_p2 = lst1_p2
-l2_p2 = lst2_p2
-df2_p2= df_p2
-
-#group person
-# Get data from MongoDB
-data_p3 = list(collection_2.find())
-
-date_p3=[]
-name_p3=[]
-chat_p3=[]
-for x_p3 in data_p3:
-    tmp_p3 = list(x_p3.values())
-    date_p3.append(tmp_p3[1][0:10])
-    name_p3.append(tmp_p3[2])
-    chat_p3.append(tmp_p3[3])
-    lst = [date_p3,name_p3,chat_p3]
-    dict_p3 = {'Date': date_p3, 'Name': name_p3, 'Chat': chat_p3} 
-    df_p3 = pd.DataFrame(dict_p3)  
-    
-df2_p3 = df_p3.groupby(['Name'])['Name'].count().sort_values(ascending=False)
-dtl = df2_p3.to_dict()
-df_list_p3_k = dtl.keys()
-df_list_p3_v = dtl.values()
-
-list_k = list(df_list_p3_k)
-list_v = list(df_list_p3_v)
-dict_kv = {'Name': list_k, 'Total': list_v} 
-df_kv = pd.DataFrame(dict_kv)
- 
-
-# print (list_k)
-# print (type(list_k))
-
-
-#group by date
-data_p4 = list(collection_2.find())
-date_p4=[]
-name_p4=[]
-chat_p4=[]
-for x_p4 in data_p4:
-    tmp_p4 = list(x_p4.values())
-    date_p4.append(tmp_p4[1][0:10])
-    name_p4.append(tmp_p4[2])
-    chat_p4.append(tmp_p4[3])
-    lst = [date_p4,name_p4,chat_p4]
-    dict_p4 = {'Date': date_p4, 'Name': name_p4, 'Chat': chat_p4} 
-    df_p4 = pd.DataFrame(dict_p4)  
-    
-df2_p4 = df_p4.groupby(['Date'])['Date'].count()
-dtl4 = df2_p4.to_dict()
-df_list_p4_k = dtl4.keys()
-df_list_p4_v = dtl4.values()
-
-list_k4 = list(df_list_p4_k)
-list_v4 = list(df_list_p4_v)
-dict_kv4 = {'Date': list_k4, 'Total': list_v4} 
-df_kv4 = pd.DataFrame(dict_kv4)
-
-#table1
-data_table = dash_table.DataTable(
-    id='table-virtualization',
-        data=df2.to_dict('records'),
-        columns=[
-            {'name': i, 'id': i} for i in df2.columns
-        ],
-        fixed_rows={ 'headers': True, 'data': 0 },
-        style_cell={
-            'textAlign':'center',
-            'whiteSpace': 'normal'
-        },
-        
-        virtualization=True,
-        page_action='none'
+MONGO_URI = "mongodb://localhost:27017"
+DB_NAME = "youtube"
+CHAT_COLLECTION = "chat_log"
+ANALYTICS_COLLECTION = "chat_analytics"
+JSON_CHAT_LOG = "json_dataset/chat_log.json"
+JSON_CHAT_ANALYTICS = "json_dataset/chat_analytics.json"
+COMPANY_CSV = "json_dataset/company.csv"
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
+    title="Live Chat Analytics - DADS5001"
 )
 
-#table2
-data_table_p2 = dash_table.DataTable(
-    id='table-virtualization',
-        data=df2_p2.to_dict('records'),
-        columns=[
-            {'name': i, 'id': i} for i in df2_p2.columns
-        ],
-        fixed_rows={ 'headers': True, 'data': 0 },
-        style_cell={
-            'textAlign':'center',
-            'whiteSpace': 'normal'
-        },
-        
-        virtualization=True,
-        page_action='none'
-)
-
-#table3
-data_table_p3 = dash_table.DataTable(
-    id='table-virtualization',
-        data=df_kv.to_dict('records'),
-        columns=[
-            {'name': i, 'id': i} for i in df_kv.columns
-        ],
-        fixed_rows={ 'headers': True, 'data': 0 },
-        style_cell={
-            'textAlign':'center',
-            'whiteSpace': 'normal'
-        },
-        
-        virtualization=True,
-        page_action='none'
-)
-
-#table4
-data_table_p4 = dash_table.DataTable(
-    id='table-virtualization',
-        data=df_kv4.to_dict('records'),
-        columns=[
-            {'name': i, 'id': i} for i in df_kv4.columns
-        ],
-        fixed_rows={ 'headers': True, 'data': 0 },
-        style_cell={
-            'textAlign':'center',
-            'whiteSpace': 'normal'
-        },
-        
-        virtualization=True,
-        page_action='none'
-)
-
-#Add Graph 
-app.layout = html.Div([
-    html.H1('Dash Tabs component demo'),
-    dcc.Tabs(id="tabs-example-graph", value='tab-1-example-graph', children=[
-        dcc.Tab(label='Tab One', value='tab-1-example-graph'),
-        dcc.Tab(label='Tab Two', value='tab-2-example-graph'),
-    ]),
-    html.Div(id='tabs-content-example-graph')
-])
-
-####################################---START - UI----######################################
-# the style arguments for the sidebar. We use position:fixed and a fixed width
 SIDEBAR_STYLE = {
     "position": "fixed",
     "top": 0,
     "left": 0,
     "bottom": 0,
-    "width": "16rem",
+    "width": "18rem",
     "padding": "2rem 1rem",
     "background-color": "#f8f9fa",
+    "overflow-y": "auto",
 }
 
-# the styles for the main content position it to the right of the sidebar and
-# add some padding.
 CONTENT_STYLE = {
-    "margin-left": "18rem",
+    "margin-left": "20rem",
     "margin-right": "2rem",
     "padding": "2rem 1rem",
 }
 
+def try_connect_mongo():
+    try:
+        client = pymongo.MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
+        client.admin.command('ping')
+        return client
+    except ConnectionFailure:
+        return None
+
+def load_analytics_data():
+    client = try_connect_mongo()
+    if client:
+        try:
+            db = client[DB_NAME]
+            collection = db[ANALYTICS_COLLECTION]
+            data = list(collection.find().sort("setAmount", -1))
+            client.close()
+            if data:
+                records = [{'Name': d['setName'], 'Total': d['setAmount']} for d in data]
+                return pd.DataFrame(records)
+        except Exception:
+            pass
+        client.close()
+
+    if os.path.exists(JSON_CHAT_ANALYTICS):
+        with open(JSON_CHAT_ANALYTICS, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if data:
+            records = [{'Name': d['setName'], 'Total': d['setAmount']} for d in data]
+            records.sort(key=lambda x: x['Total'], reverse=True)
+            return pd.DataFrame(records)
+
+    return pd.DataFrame(columns=['Name', 'Total'])
+
+def load_chat_log_data():
+    client = try_connect_mongo()
+    if client:
+        try:
+            db = client[DB_NAME]
+            collection = db[CHAT_COLLECTION]
+            data = list(collection.find())
+            client.close()
+            if data:
+                records = []
+                for doc in data:
+                    vals = list(doc.values())
+                    records.append({
+                        'Date': str(vals[1])[0:10],
+                        'Name': vals[2],
+                        'Chat': vals[3]
+                    })
+                return pd.DataFrame(records)
+        except Exception:
+            pass
+        client.close()
+
+    if os.path.exists(JSON_CHAT_LOG):
+        with open(JSON_CHAT_LOG, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if data:
+            records = [{'Date': d['dateTime'][0:10], 'Name': d['authorName'], 'Chat': d['Message']} for d in data]
+            return pd.DataFrame(records)
+
+    return pd.DataFrame(columns=['Date', 'Name', 'Chat'])
+
+def load_stock_names():
+    if os.path.exists(COMPANY_CSV):
+        df = pd.read_csv(COMPANY_CSV)
+        return dict(zip(df['SET_CODE'], df['SET_NAME']))
+    return {}
+
+def make_table(df, max_rows=None):
+    if df.empty:
+        return html.Div("No data available.", className="text-muted")
+    display_df = df.head(max_rows) if max_rows else df
+    return dash_table.DataTable(
+        data=display_df.to_dict('records'),
+        columns=[{'name': i, 'id': i} for i in display_df.columns],
+        style_table={'overflowX': 'auto'},
+        style_cell={'textAlign': 'center', 'padding': '5px'},
+        style_header={'fontWeight': 'bold'},
+        page_size=10,
+    )
+
+def make_bar_chart(df, x_col, y_col, title, color="#007bff"):
+    if df.empty:
+        return dcc.Graph(figure=go.Figure().add_annotation(
+            text="No data available", showarrow=False,
+            font=dict(size=20)))
+    fig = px.bar(
+        df, x=x_col, y=y_col, title=title,
+        text_auto=True, color_discrete_sequence=[color],
+        height=500
+    )
+    fig.update_traces(textposition='outside')
+    fig.update_layout(
+        xaxis_title="",
+        yaxis_title="Number of Mentions",
+        margin=dict(l=40, r=40, t=50, b=120),
+        xaxis_tickangle=-45,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+    )
+    return dcc.Graph(figure=fig)
+
+def generate_wordcloud(text_series):
+    text = ' '.join(text_series.dropna().astype(str).str.lower())
+    if not text.strip():
+        return None
+    wc = WordCloud(
+        width=800, height=400,
+        background_color='white',
+        max_words=100,
+        colormap='viridis',
+        collocations=False,
+    ).generate(text)
+    img_buf = io.BytesIO()
+    wc.to_image().save(img_buf, format='PNG')
+    img_buf.seek(0)
+    encoded = base64.b64encode(img_buf.read()).decode('ascii')
+    return f"data:image/png;base64,{encoded}"
+
 sidebar = html.Div(
     [
-        html.H2("SET-หุ้น", className="display-4"),
+        html.H2("Live Chat Analytics", className="display-5"),
         html.Hr(),
-        html.P("กระแสความสนใจของผู้ที่ต้องการลงทุนหุ้น", className="lead"),
+        html.P(
+            "วิเคราะห์กระแสหุ้นจาก Live Chat",
+            className="lead text-muted"
+        ),
         dbc.Nav(
             [
-                dbc.NavLink("หุ้นที่ที่ได้รับความสนใจ 10 อันดับ", href="/", active="exact"),
-                dbc.NavLink("หุ้นที่ได้รับความสนใจทั้งหมด", href="/page-1", active="exact"),
-                dbc.NavLink("ยอดผู้ชมใน 1 สัปดาห์", href="/page-2", active="exact"),
-                dbc.NavLink("ยอดผู้ชมตามการติดตาม", href="/page-3", active="exact"),
+                dbc.NavLink("Top 10 Stocks", href="/", active="exact"),
+                dbc.NavLink("All Stocks", href="/page-1", active="exact"),
+                dbc.NavLink("Viewers by Date", href="/page-2", active="exact"),
+                dbc.NavLink("Top Viewers", href="/page-3", active="exact"),
+                dbc.NavLink("Word Cloud", href="/page-4", active="exact"),
+                dbc.NavLink("Mentions Over Time", href="/page-5", active="exact"),
             ],
             vertical=True,
             pills=True,
+        ),
+        html.Hr(),
+        html.Small(
+            "DADS5001 Data Analytics Tools",
+            className="text-muted"
         ),
     ],
     style=SIDEBAR_STYLE,
@@ -231,86 +201,180 @@ content = html.Div(id="page-content", style=CONTENT_STYLE)
 
 app.layout = html.Div([dcc.Location(id="url"), sidebar, content])
 
-#---แสดงหน้า Tab
 @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
 def render_page_content(pathname):
+    stock_names = load_stock_names()
+
     if pathname == "/":
+        df = load_analytics_data()
+        df_top = df.head(10) if not df.empty else df
+        table = make_table(df_top)
+        chart = make_bar_chart(
+            df_top, 'Name', 'Total',
+            "Top 10 Most Mentioned Stocks (SET)"
+        )
         return html.Div([
-                html.H3('หุ้นที่ที่ได้รับความสนใจ 10 อันดับ'),
-                #เรียกฟังก์ชั่นตาราง แสดง
-                #เรียก กราฟ แสดง
-                data_table,
-                dcc.Graph(
-                    figure={
-                        'data': [
-                            {'x': l1, 'y': l2, 'type': 'bar', 'name': 'SF'},
-                            # {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': 'Montréal'},
-                        ],
-                        'layout': {
-                            'title': 'Dash Data Visualization'
-                        }
-                    }
-                )
-            ])
+            html.H3("Top 10 Most Mentioned Stocks"),
+            html.P("หุ้นที่ถูกพูดถึงมากที่สุด 10 อันดับ จาก Live Chat", className="text-muted"),
+            html.Hr(),
+            chart,
+            html.Hr(),
+            html.H5("Data Table"),
+            table,
+        ])
+
     elif pathname == "/page-1":
-         return html.Div([
-            html.H3('หุ้นที่ได้รับความสนใจทั้งหมด'),
-            # dcc.Graph(figure=fig),
-            data_table_p2,
-            dcc.Graph(
-                figure={
-                    'data': [
-                        {'x': l1_p2, 'y': l2_p2, 'type': 'bar', 'name': 'SF'},
-                    ],
-                    'layout': {
-                        'title': 'Dash Data Visualization'
-                    }
-                }
-            )
+        df = load_analytics_data()
+        table = make_table(df)
+        chart = make_bar_chart(
+            df, 'Name', 'Total',
+            "All Mentioned Stocks (SET)"
+        )
+        return html.Div([
+            html.H3("All Mentioned Stocks"),
+            html.P("หุ้นทั้งหมดที่ถูกพูดถึงใน Live Chat", className="text-muted"),
+            html.Hr(),
+            chart,
+            html.Hr(),
+            html.H5("Data Table"),
+            table,
         ])
+
     elif pathname == "/page-2":
-        return html.Div([
-            html.H3('ยอดผู้ชมใน 1 สัปดาห์'),
-            data_table_p4,
-            dcc.Graph(
-                figure={
-                    'data': [
-                        {'x': list_k4, 'y': list_v4, 'type': 'bar', 'name': 'Montréal'},
-                    ],
-                    'layout': {
-                        'title': 'Dash Data Visualization'
-                    }
-                }
+        df_log = load_chat_log_data()
+        if not df_log.empty:
+            df_viewers = (
+                df_log.groupby('Date')['Name']
+                .nunique()
+                .reset_index()
+                .rename(columns={'Name': 'Unique Viewers', 'Date': 'Date'})
+                .sort_values('Date')
             )
-            #app.layout 
+        else:
+            df_viewers = pd.DataFrame(columns=['Date', 'Unique Viewers'])
+        table = make_table(df_viewers)
+        chart = make_bar_chart(
+            df_viewers, 'Date', 'Unique Viewers',
+            "Unique Viewers per Live Stream",
+            color="#28a745"
+        )
+        return html.Div([
+            html.H3("Viewers by Date"),
+            html.P("จำนวนผู้ชมที่ไม่ซ้ำกันในแต่ละวันที่มี Live", className="text-muted"),
+            html.Hr(),
+            chart,
+            html.Hr(),
+            html.H5("Data Table"),
+            table,
         ])
+
     elif pathname == "/page-3":
-        return html.Div([
-            html.H3('ยอดผู้ชมตามการติดตาม'),
-            data_table_p3,
-            dcc.Graph(
-                figure={
-                    'data': [
-                        {'x': list_k, 'y': list_v, 'type': 'bar', 'name': 'Montréal'},
-                    ],
-                    'layout': {
-                        'title': 'Dash Data Visualization'
-                    }
-                }
+        df_log = load_chat_log_data()
+        if not df_log.empty:
+            df_top_viewers = (
+                df_log.groupby('Name')['Chat']
+                .count()
+                .reset_index()
+                .rename(columns={'Chat': 'Messages'})
+                .sort_values('Messages', ascending=False)
+                .head(20)
             )
-            #app.layout 
+        else:
+            df_top_viewers = pd.DataFrame(columns=['Name', 'Messages'])
+        table = make_table(df_top_viewers)
+        chart = make_bar_chart(
+            df_top_viewers, 'Name', 'Messages',
+            "Top 20 Most Active Viewers",
+            color="#dc3545"
+        )
+        return html.Div([
+            html.H3("Top Viewers"),
+            html.P("ผู้ชมที่ส่งข้อความมากที่สุด 20 อันดับ", className="text-muted"),
+            html.Hr(),
+            chart,
+            html.Hr(),
+            html.H5("Data Table"),
+            table,
         ])
-    # If the user tries to reach a different page, return a 404 message
+
+    elif pathname == "/page-4":
+        df_log = load_chat_log_data()
+        img_data = generate_wordcloud(df_log['Chat'] if not df_log.empty else pd.Series(dtype=str))
+        if img_data:
+            wc_component = html.Img(src=img_data, style={"width": "100%", "maxWidth": "800px"})
+        else:
+            wc_component = html.Div("No chat data available for word cloud.", className="text-muted")
+        return html.Div([
+            html.H3("Word Cloud"),
+            html.P("คำที่ถูกพูดถึงบ่อยที่สุดใน Live Chat (แสดงเป็น Word Cloud)", className="text-muted"),
+            html.Hr(),
+            wc_component,
+        ])
+
+    elif pathname == "/page-5":
+        df = load_analytics_data()
+        df_log = load_chat_log_data()
+        stock_names_list = df['Name'].head(10).tolist() if not df.empty else []
+
+        if not df_log.empty and stock_names_list:
+            records = []
+            for _, row in df_log.iterrows():
+                chat = str(row['Chat'])
+                date = row['Date']
+                for code in stock_names_list:
+                    if re.search(r'\b' + re.escape(code) + r'\b', chat, re.IGNORECASE):
+                        records.append({'Date': date, 'Stock': code, 'Chat': chat})
+            df_ts = pd.DataFrame(records)
+            if not df_ts.empty:
+                df_ts = (
+                    df_ts.groupby(['Date', 'Stock'])
+                    .size()
+                    .reset_index(name='Count')
+                    .sort_values('Date')
+                )
+            else:
+                df_ts = pd.DataFrame(columns=['Date', 'Stock', 'Count'])
+        else:
+            df_ts = pd.DataFrame(columns=['Date', 'Stock', 'Count'])
+
+        if not df_ts.empty:
+            fig = px.line(
+                df_ts, x='Date', y='Count', color='Stock',
+                title="Top 10 Stock Mentions Over Time",
+                markers=True,
+                height=500,
+            )
+            fig.update_layout(
+                xaxis_title="Date",
+                yaxis_title="Number of Mentions",
+                legend_title="Stock",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+            )
+            chart = dcc.Graph(figure=fig)
+        else:
+            chart = html.Div("No time-series data available.", className="text-muted")
+
+        table = make_table(df_ts)
+
+        return html.Div([
+            html.H3("Stock Mentions Over Time"),
+            html.P("แนวโน้มการพูดถึงหุ้น Top 10 ในแต่ละวัน", className="text-muted"),
+            html.Hr(),
+            chart,
+            html.Hr(),
+            html.H5("Data Table"),
+            table,
+        ])
+
     return html.Div(
         [
             html.H1("404: Not found", className="text-danger"),
             html.Hr(),
             html.P(f"The pathname {pathname} was not recognised..."),
-
         ],
         className="p-3 bg-light rounded-3",
     )
-##########################################################################
 
 if __name__ == "__main__":
-    app.run_server(port=1111)
+    app.run_server(port=1111, debug=True)
