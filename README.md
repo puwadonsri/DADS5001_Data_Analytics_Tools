@@ -51,9 +51,3 @@ DADS5001_Data_Analytics_Tools/
 - **เทคโนโลยี**: Python, Pandas, Plotly, Matplotlib
 - [รายละเอียดเพิ่มเติม →](Project/README.md)
 
----
-
-## ผู้จัดทำ
-
-1. 6420422026 ภูวดล ศรีธรรม
-2. 6420422019 ขนิษฐา ปะอันทัง
